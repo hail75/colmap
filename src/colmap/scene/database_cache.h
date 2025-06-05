@@ -69,7 +69,8 @@ class DatabaseCache {
       const Database& database,
       size_t min_num_matches,
       bool ignore_watermarks,
-      const std::unordered_set<std::string>& image_names);
+      const std::unordered_set<std::string>& image_names,
+      const std::string& image_path);
 
   // Get number of objects.
   inline size_t NumRigs() const;

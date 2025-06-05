@@ -41,6 +41,49 @@
 
 namespace colmap {
 
+void TranslationVectorTwoPointEstimator::Estimate(
+    const std::vector<X_t>& points1,
+    const std::vector<Y_t>& points2,
+    const R_t& R,
+    std::vector<M_t>* models) {
+  THROW_CHECK_EQ(points1.size(), points2.size());
+  THROW_CHECK_GE(points1.size(), 2);
+  THROW_CHECK(models != nullptr);
+
+  models->clear();
+
+  Eigen::Matrix<double, Eigen::Dynamic, 3> A(points1.size(), 3);
+  for (size_t i = 0; i < points1.size(); ++i) {
+    const Eigen::Vector3d p1 = points1[i].homogeneous();
+    const Eigen::Vector3d p2 = points2[i].homogeneous();
+
+    const Eigen::Vector3d p1_rotated = R * p1;
+
+    // t must lie in the plane spanned by p1_rotated and p2. 
+    A.row(i) << p1_rotated.cross(p2);
+  }
+
+  const Eigen::JacobiSVD<Eigen::Matrix<double, Eigen::Dynamic, 3>> svd(
+    A, Eigen::ComputeFullV);
+  models->resize(1);
+  (*models)[0] = svd.matrixV().col(2).normalized();
+}
+
+void TranslationVectorTwoPointEstimator::Residuals(
+    const std::vector<X_t>& points1,
+    const std::vector<Y_t>& points2,
+    const R_t& R,
+    const M_t& t,
+    std::vector<double>* residuals) {
+  const Eigen::Matrix3d t_hat;
+  t_hat << 0, -t(2), t(1),
+           t(2), 0, -t(0),
+          -t(1), t(0), 0;
+
+  Eigen::Matrix3d E = t_hat * R;
+  ComputeSquaredSampsonError(points1, points2, E, residuals);
+}
+
 void EssentialMatrixFivePointEstimator::Estimate(
     const std::vector<X_t>& points1,
     const std::vector<Y_t>& points2,

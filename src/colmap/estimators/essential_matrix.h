@@ -39,6 +39,27 @@
 
 namespace colmap {
 
+class TranslationVectorTwoPointEstimator {
+ public: 
+  typedef Eigen::Vector2d X_t;
+  typedef Eigen::Vector2d Y_t;
+  typedef Eigen::Matrix3d R_t;
+  typedef Eigen::Vector3d M_t;
+
+  static const int kMinNumSamples = 2;
+
+  static void Estimate(const std::vector<X_t>& points1,
+                       const std::vector<Y_t>& points2,
+                       const R_t& R,
+                       std::vector<M_t>* models);
+
+  static void Residuals(const std::vector<X_t>& points1,
+                        const std::vector<Y_t>& points2,
+                        const R_t& R,
+                        const M_t& t,
+                        std::vector<double>* residuals);
+};
+
 // Essential matrix estimator from corresponding normalized point pairs.
 //
 // This algorithm solves the 5-Point problem based on the following paper:

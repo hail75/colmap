@@ -32,6 +32,11 @@
 #include "colmap/util/string.h"
 #include "colmap/util/timer.h"
 
+#include <Eigen/Dense>
+#include <filesystem>
+#include <fstream>
+#include <sstream>
+
 namespace colmap {
 namespace {
 
@@ -44,6 +49,27 @@ std::vector<Eigen::Vector2d> FeatureKeypointsToPointsVector(
   return points;
 }
 
+Eigen::Matrix3d ReadMatrix3dFromTxt(const std::string& path) {
+  Eigen::Matrix3d R;
+  std::ifstream file(path);
+
+  for (int row = 0; row < 3; ++row) {
+    std::string line;
+
+    std::getline(file, line);
+    std::stringstream ss(line);
+
+    for (int col = 0; col < 3; ++col) {
+      double value;
+
+      ss >> value;
+      R(row, col) = value;
+    }
+  }
+  file.close();
+  return R;
+}  
+
 }  // namespace
 
 DatabaseCache::DatabaseCache()
@@ -53,7 +79,8 @@ std::shared_ptr<DatabaseCache> DatabaseCache::Create(
     const Database& database,
     const size_t min_num_matches,
     const bool ignore_watermarks,
-    const std::unordered_set<std::string>& image_names) {
+    const std::unordered_set<std::string>& image_names,
+    const std::string& image_path) {
   auto cache = std::make_shared<DatabaseCache>();
 
   const bool has_rigs = database.NumRigs() > 0;
@@ -229,6 +256,10 @@ std::shared_ptr<DatabaseCache> DatabaseCache::Create(
       }
 
       const image_t image_id = image.ImageId();
+      const std::string rotation_path =
+        (std::filesystem::path(image_path) / std::filesystem::path(
+          image.Name() + "_gyro.txt")).string();
+      image.SetRotationWorldFromGyro(ReadMatrix3dFromTxt(rotation_path));
       image.SetPoints2D(
           FeatureKeypointsToPointsVector(database.ReadKeypoints(image_id)));
       cache->images_.emplace(image_id, std::move(image));

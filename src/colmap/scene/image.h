@@ -162,6 +162,9 @@ class Image {
   // share the same frame. If not specified `kInvalidFrameId`.
   frame_t frame_id_;
   class Frame* frame_ptr_;
+  
+  // The rotation of the camera in world frame extracted from the gyroscope data.
+  Eigen::Matrix3d rotation_;
 
   // The number of 3D points the image observes, i.e. the sum of its `points2D`
   // where `point3D_id != kInvalidPoint3DId`.
@@ -253,6 +256,12 @@ bool Image::HasTrivialFrame() const {
   return THROW_CHECK_NOTNULL(frame_ptr_)
       ->RigPtr()
       ->IsRefSensor(sensor_t(SensorType::CAMERA, camera_id_));
+}
+
+Eigen::Matrix3d Image::RotationWorldFromGyro() const { return rotation_; }
+
+void Image::SetRotationWorldFromGyro(const Eigen::Matrix3d& rotation) {
+  rotation_ = rotation;
 }
 
 point2D_t Image::NumPoints2D() const {
