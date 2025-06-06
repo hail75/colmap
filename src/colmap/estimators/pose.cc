@@ -55,57 +55,77 @@ bool EstimateAbsolutePose(const AbsolutePoseEstimationOptions& options,
   *num_inliers = 0;
   inlier_mask->clear();
 
-  if (options.estimate_focal_length) {
-    // TODO(jsch): Implement non-minimal solver for LORANSAC refinement.
-    // Experiments showed marginal difference between RANSAC/LORANSAC for PNPF
-    // after refining the estimates of this function using RefineAbsolutePose.
-    const Eigen::Vector2d principal_point(camera->PrincipalPointX(),
-                                          camera->PrincipalPointY());
-    std::vector<Eigen::Vector2d> points2D_centered(points2D.size());
-    for (size_t i = 0; i < points2D.size(); ++i) {
-      points2D_centered[i] = points2D[i] - principal_point;
+  std::vector<P3PEstimator::X_t> points2D_with_rays(points2D.size());
+  for (size_t i = 0; i < points2D.size(); ++i) {
+    points2D_with_rays[i].image_point = points2D[i];
+    if (const std::optional<Eigen::Vector2d> cam_point =
+            camera->CamFromImg(points2D[i]);
+        cam_point) {
+      points2D_with_rays[i].camera_ray =
+          cam_point->homogeneous().normalized();
+    } else {
+      points2D_with_rays[i].camera_ray.setZero();
     }
-    RANSAC<P4PFEstimator> ransac(options.ransac_options);
-    auto report = ransac.Estimate(points2D_centered, points3D);
-    if (report.success) {
-      *cam_from_world =
-          Rigid3d(Eigen::Quaterniond(report.model.cam_from_world.leftCols<3>()),
-                  report.model.cam_from_world.col(3));
-      for (const size_t idx : camera->FocalLengthIdxs()) {
-        camera->params[idx] = report.model.focal_length;
-      }
-      *num_inliers = report.support.num_inliers;
-      *inlier_mask = std::move(report.inlier_mask);
-      return true;
-    }
-  } else {
-    std::vector<P3PEstimator::X_t> points2D_with_rays(points2D.size());
-    for (size_t i = 0; i < points2D.size(); ++i) {
-      points2D_with_rays[i].image_point = points2D[i];
-      if (const std::optional<Eigen::Vector2d> cam_point =
-              camera->CamFromImg(points2D[i]);
-          cam_point) {
-        points2D_with_rays[i].camera_ray =
-            cam_point->homogeneous().normalized();
-      } else {
-        points2D_with_rays[i].camera_ray.setZero();
-      }
-    }
+  }
 
-    ImgFromCamFunc img_from_cam_func =
-        std::bind(&Camera::ImgFromCam, camera, std::placeholders::_1);
-    LORANSAC<P3PEstimator, EPNPEstimator> ransac(
-        options.ransac_options,
-        P3PEstimator(img_from_cam_func),
-        EPNPEstimator(img_from_cam_func));
-    auto report = ransac.Estimate(points2D_with_rays, points3D);
-    if (report.success) {
-      *cam_from_world = Rigid3d(Eigen::Quaterniond(report.model.leftCols<3>()),
-                                report.model.col(3));
-      *num_inliers = report.support.num_inliers;
-      *inlier_mask = std::move(report.inlier_mask);
-      return true;
+  ImgFromCamFunc img_from_cam_func =
+      std::bind(&Camera::ImgFromCam, camera, std::placeholders::_1);
+  LORANSAC<P3PEstimator, EPNPEstimator> ransac(
+      options.ransac_options,
+      P3PEstimator(img_from_cam_func),
+      EPNPEstimator(img_from_cam_func));
+  auto report = ransac.Estimate(points2D_with_rays, points3D);
+  if (report.success) {
+    *cam_from_world = Rigid3d(Eigen::Quaterniond(report.model.leftCols<3>()),
+                              report.model.col(3));
+    *num_inliers = report.support.num_inliers;
+    *inlier_mask = std::move(report.inlier_mask);
+    return true;
+  }
+
+  return false;
+}
+
+bool EstimateAbsolutePoseWithRotation(const AbsolutePoseEstimationOptions& options,
+                                      const std::vector<Eigen::Vector2d>& points2D,
+                                      const std::vector<Eigen::Vector3d>& points3D,
+                                      const Eigen::Matrix3d& rotation,
+                                      Rigid3d* cam_from_world,
+                                      Camera* camera,
+                                      size_t* num_inliers,
+                                      std::vector<char>* inlier_mask) {
+  THROW_CHECK_EQ(points2D.size(), points3D.size());
+  options.Check();
+
+  *num_inliers = 0;
+  inlier_mask->clear();
+
+  std::vector<P2PEstimator::X_t> points2D_with_rays(points2D.size());
+  for (size_t i = 0; i < points2D.size(); ++i) {
+    points2D_with_rays[i].image_point = points2D[i];
+    if (const std::optional<Eigen::Vector2d> cam_point =
+            camera->CamFromImg(points2D[i]);
+        cam_point) {
+      points2D_with_rays[i].camera_ray =
+          cam_point->homogeneous().normalized();
+    } else {
+      points2D_with_rays[i].camera_ray.setZero();
     }
+  }
+
+  ImgFromCamFunc img_from_cam_func =
+      std::bind(&Camera::ImgFromCam, camera, std::placeholders::_1);
+  LORANSAC<P2PEstimator, P2PEstimator> ransac(
+      options.ransac_options,
+      P2PEstimator(img_from_cam_func),
+      P2PEstimator(img_from_cam_func));
+  auto report = ransac.Estimate(points2D_with_rays, points3D, rotation);
+  if (report.success) {
+    *cam_from_world = Rigid3d(Eigen::Quaterniond(rotation),
+                              report.model);
+    *num_inliers = report.support.num_inliers;
+    *inlier_mask = std::move(report.inlier_mask);
+    return true;
   }
 
   return false;

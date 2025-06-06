@@ -90,11 +90,7 @@ struct AbsolutePoseRefinementOptions {
   }
 };
 
-// Estimate absolute pose (optionally focal length) from 2D-3D correspondences.
-//
-// Focal length estimation is performed using discrete sampling around the
-// focal length of the given camera. The focal length that results in the
-// maximal number of inliers is assigned to the given camera.
+// Estimate absolute pose from 2D-3D correspondences.
 //
 // @param options              Absolute pose estimation options.
 // @param points2D             Corresponding 2D points.
@@ -113,6 +109,28 @@ bool EstimateAbsolutePose(const AbsolutePoseEstimationOptions& options,
                           Camera* camera,
                           size_t* num_inliers,
                           std::vector<char>* inlier_mask);
+
+// Estimate absolute pose from 2D-3D correspondences with known rotation.
+//
+// @param options              Absolute pose estimation options.
+// @param points2D             Corresponding 2D points.
+// @param points3D             Corresponding 3D points.
+// @param rotation             Known rotation of the camera in world coordinates.
+// @param cam_from_world       Estimated absolute camera pose.
+// @param camera               Camera for which to estimate pose. Modified
+//                             in-place to store the estimated focal length.
+// @param num_inliers          Number of inliers in RANSAC.
+// @param inlier_mask          Inlier mask for 2D-3D correspondences.
+//
+// @return                     Whether pose is estimated successfully.
+bool EstimateAbsolutePoseWithRotation(const AbsolutePoseEstimationOptions& options,
+                                      const std::vector<Eigen::Vector2d>& points2D,
+                                      const std::vector<Eigen::Vector3d>& points3D,
+                                      const Eigen::Matrix3d& rotation,
+                                      Rigid3d* cam_from_world,
+                                      Camera* camera,
+                                      size_t* num_inliers,
+                                      std::vector<char>* inlier_mask);
 
 // Estimate relative from 2D-2D correspondences.
 //

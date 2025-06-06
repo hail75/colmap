@@ -546,10 +546,14 @@ bool IncrementalMapperImpl::EstimateInitialTwoViewGeometry(
     const image_t image_id2,
     TwoViewGeometry& two_view_geometry) {
   const Image& image1 = database_cache.Image(image_id1);
+  const Eigen::Matrix3d R1 = image1.RotationWorldFromGyro();
   const Camera& camera1 = database_cache.Camera(image1.CameraId());
 
   const Image& image2 = database_cache.Image(image_id2);
+  const Eigen::Matrix3d R2 = image2.RotationWorldFromGyro();
   const Camera& camera2 = database_cache.Camera(image2.CameraId());
+
+  const Eigen::Matrix3d rotation = R2 * R1.transpose();
 
   const FeatureMatches matches =
       database_cache.CorrespondenceGraph()->FindCorrespondencesBetweenImages(
@@ -570,8 +574,15 @@ bool IncrementalMapperImpl::EstimateInitialTwoViewGeometry(
   TwoViewGeometryOptions two_view_geometry_options;
   two_view_geometry_options.ransac_options.min_num_trials = 30;
   two_view_geometry_options.ransac_options.max_error = options.init_max_error;
-  two_view_geometry = EstimateCalibratedTwoViewGeometry(
-      camera1, points1, camera2, points2, matches, two_view_geometry_options);
+  
+  if (options.mode == 0) {
+    two_view_geometry = EstimateCalibratedTwoViewGeometry(
+        camera1, points1, camera2, points2, matches, two_view_geometry_options);
+  } else {
+    two_view_geometry = EstimateCalibratedTwoViewGeometryWithRotation(
+        camera1, points1, camera2, points2, matches, rotation,
+        two_view_geometry_options);
+  }
 
   if (!EstimateTwoViewGeometryPose(
           camera1, points1, camera2, points2, &two_view_geometry)) {

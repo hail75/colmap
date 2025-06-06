@@ -72,6 +72,24 @@ void PoseFromEssentialMatrix(const Eigen::Matrix3d& E,
                              Rigid3d* cam2_from_cam1,
                              std::vector<Eigen::Vector3d>* points3D);
 
+// Recover the most probable pose from the given rotation matrix and
+// translation vector.
+//
+// The pose of the first image is assumed to be P = [I | 0].
+//
+// @param R               3x3 rotation matrix.
+// @param t               3x1 translation vector.
+// @param points1         First set of corresponding points.
+// @param points2         Second set of corresponding points.
+// @param cam2_from_cam1  Relative camera transformation.
+// @param points3D        Triangulated 3D points infront of camera.
+void PoseFromRotationMatrixAndTranslationVector(
+    const Eigen::Matrix3d& R, const Eigen::Vector3d& t,
+    const std::vector<Eigen::Vector2d>& points1,
+    const std::vector<Eigen::Vector2d>& points2,
+    Rigid3d* cam2_from_cam1,
+    std::vector<Eigen::Vector3d>* points3D);
+
 // Compose essential matrix from relative camera poses.
 //
 // Assumes that first camera pose has projection matrix P = [I | 0], and

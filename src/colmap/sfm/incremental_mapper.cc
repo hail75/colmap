@@ -354,17 +354,31 @@ bool IncrementalMapper::RegisterNextImage(const Options& options,
           database_cache_->Camera(frame_image.CameraId()).params;
     }
   }
-
+  const Eigen::Matrix3d R = image.RotationWorldFromGyro();
   size_t num_inliers;
   std::vector<char> inlier_mask;
   Rigid3d cam_from_world;
-  if (!EstimateAbsolutePose(abs_pose_options,
-                            tri_points2D,
-                            tri_points3D,
-                            &cam_from_world,
-                            &camera,
-                            &num_inliers,
-                            &inlier_mask)) {
+  bool abs_pose_success;
+
+  if (options.mode == 0) {
+    abs_pose_success = EstimateAbsolutePose(abs_pose_options,
+                                            tri_points2D,
+                                            tri_points3D,
+                                            &cam_from_world,
+                                            &camera,
+                                            &num_inliers,
+                                            &inlier_mask);
+  } else {
+    abs_pose_success = EstimateAbsolutePoseWithRotation(abs_pose_options,
+                                                        tri_points2D,
+                                                        tri_points3D,
+                                                        R,
+                                                        &cam_from_world,
+                                                        &camera,
+                                                        &num_inliers,
+                                                        &inlier_mask);
+  }
+  if (!abs_pose_success) {
     VLOG(2) << "Absolute pose estimation failed";
     return false;
   }

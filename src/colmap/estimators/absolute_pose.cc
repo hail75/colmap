@@ -40,6 +40,60 @@
 
 namespace colmap {
 
+P2PEstimator::P2PEstimator(ImgFromCamFunc img_from_cam_func)
+    : img_from_cam_func_(std::move(img_from_cam_func)) {}
+
+void P2PEstimator::Estimate(const std::vector<X_t>& points2D,
+                            const std::vector<Y_t>& points3D,
+                            const Eigen::Matrix3d& R,
+                            std::vector<M_t>* models) const {
+  THROW_CHECK_EQ(points2D.size(), points3D.size());
+  THROW_CHECK_GE(points2D.size(), kMinNumSamples);
+  THROW_CHECK_NOTNULL(models);
+
+  models->clear();
+  models->resize(1);
+
+  Eigen::Matrix<double, Eigen::Dynamic, 3> A(3 * points2D.size(), 3);
+  Eigen::Vector<double, Eigen::Dynamic> b(3 * points2D.size());
+  for (size_t i = 0; i < points2D.size(); ++i) {
+    const Eigen::Vector3d p = points2D[i].camera_ray;
+    Eigen::Matrix3d p_hat; 
+    p_hat << 0, -p(2), p(1),
+             p(2), 0, -p(0),
+            -p(1), p(0), 0;
+
+    A.block<3, 3>(3 * i, 0) = p_hat;
+
+    const Eigen::Vector3d Xw = points3D[i];
+
+    b.segment<3>(3 * i) = - p.cross(R * Xw);
+  }
+  
+  if (points2D.size() == 2) {
+    const Eigen::JacobiSVD<Eigen::Matrix<double, Eigen::Dynamic, 3>> svd(
+      A, Eigen::ComputeThinU | Eigen::ComputeThinV);
+    (*models)[0] = svd.solve(b);
+  } else {
+    // Use BDCSVD in the local optimization phase of LORANSAC (A is large).
+    const Eigen::BDCSVD<Eigen::Matrix<double, Eigen::Dynamic, 3>> svd(
+        A, Eigen::ComputeThinU | Eigen::ComputeThinV);
+    (*models)[0] = svd.solve(b);
+  }      
+}
+
+void P2PEstimator::Residuals(const std::vector<X_t>& points2D,
+                             const std::vector<Y_t>& points3D,
+                             const Eigen::Matrix3d& R,
+                             const M_t& model,
+                             std::vector<double>* residuals) const {
+  Eigen::Matrix3x4d cam_from_world;
+  cam_from_world.leftCols<3>() = R;
+  cam_from_world.col(3) = model;
+  ComputeSquaredReprojectionError(
+      points2D, points3D, cam_from_world, img_from_cam_func_, residuals);
+}
+
 P3PEstimator::P3PEstimator(ImgFromCamFunc img_from_cam_func)
     : img_from_cam_func_(std::move(img_from_cam_func)) {}
 

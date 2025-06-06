@@ -131,6 +131,8 @@ class IncrementalMapper {
     // Number of threads.
     int num_threads = -1;
 
+    int mode = 0;
+
     // Method to find and select next best image to register.
     enum class ImageSelectionMethod {
       MAX_VISIBLE_POINTS_NUM,

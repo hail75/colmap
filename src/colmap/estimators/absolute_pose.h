@@ -52,6 +52,30 @@ struct Point2DWithRay {
   Eigen::Vector3d camera_ray;
 };
 
+class P2PEstimator {
+ public:
+  typedef Point2DWithRay X_t;
+  typedef Eigen::Vector3d Y_t;
+  typedef Eigen::Vector3d M_t;
+
+  static const int kMinNumSamples = 2;
+
+  explicit P2PEstimator(ImgFromCamFunc img_from_cam_func);
+
+  void Estimate(const std::vector<X_t>& points2D,
+                const std::vector<Y_t>& points3D,
+                const Eigen::Matrix3d& R,
+                std::vector<M_t>* models) const;
+  void Residuals(const std::vector<X_t>& points2D,
+                 const std::vector<Y_t>& points3D,
+                  const Eigen::Matrix3d& R,
+                 const M_t& models,
+                 std::vector<double>* residuals) const;
+
+ private:
+  const ImgFromCamFunc img_from_cam_func_;
+};
+
 class P3PEstimator {
  public:
   // The 2D image feature observations.

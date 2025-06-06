@@ -92,6 +92,31 @@ void PoseFromEssentialMatrix(const Eigen::Matrix3d& E,
   }
 }
 
+void PoseFromRotationMatrixAndTranslationVector(
+    const Eigen::Matrix3d& R, const Eigen::Vector3d& t,
+    const std::vector<Eigen::Vector2d>& points1,
+    const std::vector<Eigen::Vector2d>& points2,
+    Rigid3d* cam2_from_cam1,
+    std::vector<Eigen::Vector3d>* points3D) {
+  THROW_CHECK_EQ(points1.size(), points2.size());
+
+  const Eigen::Quaterniond quat(R);
+
+  // Generate all possible pose combinations.
+  const std::array<Rigid3d, 2> cams2_from_cams1{{Rigid3d(quat, t),
+                                                 Rigid3d(quat, -t)}};
+
+  points3D->clear();
+  std::vector<Eigen::Vector3d> tentative_points3D;
+  for (size_t i = 0; i < cams2_from_cams1.size(); ++i) {
+    CheckCheirality(cams2_from_cams1[i], points1, points2, &tentative_points3D);
+    if (tentative_points3D.size() >= points3D->size()) {
+      *cam2_from_cam1 = cams2_from_cams1[i];
+      std::swap(*points3D, tentative_points3D);
+    }
+  }
+}
+
 Eigen::Matrix3d EssentialMatrixFromPose(const Rigid3d& cam2_from_cam1) {
   return CrossProductMatrix(cam2_from_cam1.translation.normalized()) *
          cam2_from_cam1.rotation.toRotationMatrix();

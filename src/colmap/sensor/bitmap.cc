@@ -433,57 +433,60 @@ bool Bitmap::ExifFocalLength(double* focal_length) const {
     std::cmatch result;
     if (std::regex_search(focal_length_str.c_str(), result, regex)) {
       const double focal_length_mm = std::stold(result[1]);
+      // Pixel 7a
+      const double sensor_pixel_width = 0.0008;
+      const double binning_factor = 2.0;
+      *focal_length = focal_length_mm / (sensor_pixel_width * binning_factor);
+      return true;
 
-      // Lookup sensor width in database.
-      std::string make_str;
-      std::string model_str;
-      if (ReadExifTag(handle_.ptr, FIMD_EXIF_MAIN, "Make", &make_str) &&
-          ReadExifTag(handle_.ptr, FIMD_EXIF_MAIN, "Model", &model_str)) {
-        CameraDatabase database;
-        double sensor_width;
-        if (database.QuerySensorWidth(make_str, model_str, &sensor_width)) {
-          *focal_length = focal_length_mm / sensor_width * max_size;
-          return true;
-        }
-      }
+      // // Lookup sensor width in database.
+      // std::string make_str;
+      // std::string model_str;
+      // if (ReadExifTag(handle_.ptr, FIMD_EXIF_MAIN, "Make", &make_str) &&
+      //     ReadExifTag(handle_.ptr, FIMD_EXIF_MAIN, "Model", &model_str)) {
+      //   if (database.QuerySensorWidth(make_str, model_str, &sensor_width)) {
+      //     *focal_length = focal_length_mm / sensor_width * max_size;
+      //     return true;
+      //   }
+      // }
 
-      // Extract sensor width from EXIF.
-      std::string pixel_x_dim_str;
-      std::string x_res_str;
-      std::string res_unit_str;
-      if (ReadExifTag(handle_.ptr,
-                      FIMD_EXIF_EXIF,
-                      "PixelXDimension",
-                      &pixel_x_dim_str) &&
-          ReadExifTag(handle_.ptr,
-                      FIMD_EXIF_EXIF,
-                      "FocalPlaneXResolution",
-                      &x_res_str) &&
-          ReadExifTag(handle_.ptr,
-                      FIMD_EXIF_EXIF,
-                      "FocalPlaneResolutionUnit",
-                      &res_unit_str)) {
-        regex = std::regex(".*?([0-9.]+).*?");
-        if (std::regex_search(pixel_x_dim_str.c_str(), result, regex)) {
-          const double pixel_x_dim = std::stold(result[1]);
-          regex = std::regex(".*?([0-9.]+).*?/.*?([0-9.]+).*?");
-          if (std::regex_search(x_res_str.c_str(), result, regex)) {
-            const double x_res = std::stold(result[2]) / std::stold(result[1]);
-            // Use PixelXDimension instead of actual width of image, since
-            // the image might have been resized, but the EXIF data preserved.
-            const double ccd_width = x_res * pixel_x_dim;
-            if (ccd_width > 0 && focal_length_mm > 0) {
-              if (res_unit_str == "cm") {
-                *focal_length = focal_length_mm / (ccd_width * 10.0) * max_size;
-                return true;
-              } else if (res_unit_str == "inches") {
-                *focal_length = focal_length_mm / (ccd_width * 25.4) * max_size;
-                return true;
-              }
-            }
-          }
-        }
-      }
+      // // Extract sensor width from EXIF.
+      // std::string pixel_x_dim_str;
+      // std::string x_res_str;
+      // std::string res_unit_str;
+      // if (ReadExifTag(handle_.ptr,
+      //                 FIMD_EXIF_EXIF,
+      //                 "PixelXDimension",
+      //                 &pixel_x_dim_str) &&
+      //     ReadExifTag(handle_.ptr,
+      //                 FIMD_EXIF_EXIF,
+      //                 "FocalPlaneXResolution",
+      //                 &x_res_str) &&
+      //     ReadExifTag(handle_.ptr,
+      //                 FIMD_EXIF_EXIF,
+      //                 "FocalPlaneResolutionUnit",
+      //                 &res_unit_str)) {
+      //   regex = std::regex(".*?([0-9.]+).*?");
+      //   if (std::regex_search(pixel_x_dim_str.c_str(), result, regex)) {
+      //     const double pixel_x_dim = std::stold(result[1]);
+      //     regex = std::regex(".*?([0-9.]+).*?/.*?([0-9.]+).*?");
+      //     if (std::regex_search(x_res_str.c_str(), result, regex)) {
+      //       const double x_res = std::stold(result[2]) / std::stold(result[1]);
+      //       // Use PixelXDimension instead of actual width of image, since
+      //       // the image might have been resized, but the EXIF data preserved.
+      //       const double ccd_width = x_res * pixel_x_dim;
+      //       if (ccd_width > 0 && focal_length_mm > 0) {
+      //         if (res_unit_str == "cm") {
+      //           *focal_length = focal_length_mm / (ccd_width * 10.0) * max_size;
+      //           return true;
+      //         } else if (res_unit_str == "inches") {
+      //           *focal_length = focal_length_mm / (ccd_width * 25.4) * max_size;
+      //           return true;
+      //         }
+      //       }
+      //     }
+      //   }
+      // }
     }
   }
 
