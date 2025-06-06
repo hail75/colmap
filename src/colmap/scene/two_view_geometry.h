@@ -80,7 +80,6 @@ struct TwoViewGeometry {
 
   // Inlier matches of the configuration.
   FeatureMatches inlier_matches;
-  // Rotation matrix.
   // Median triangulation angle.
   double tri_angle = -1;
 
