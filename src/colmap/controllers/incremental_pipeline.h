@@ -145,6 +145,8 @@ struct IncrementalPipelineOptions {
   // If reconstruction is provided as input, fix the existing frame poses.
   bool fix_existing_frames = false;
 
+  int mode = 0;
+
   IncrementalMapper::Options mapper;
   IncrementalTriangulator::Options triangulation;
 

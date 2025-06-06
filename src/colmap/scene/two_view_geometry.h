@@ -56,6 +56,8 @@ struct TwoViewGeometry {
     // Multi-model configuration, i.e. the inlier matches result from multiple
     // individual, non-degenerate configurations.
     MULTIPLE = 8,
+    // Essential matrix.
+    GYRO_AID_CALIBRATED = 9,
   };
 
   // One of `ConfigurationType`.
@@ -67,13 +69,17 @@ struct TwoViewGeometry {
   Eigen::Matrix3d F = Eigen::Matrix3d::Zero();
   // Homography matrix.
   Eigen::Matrix3d H = Eigen::Matrix3d::Zero();
+  // Rotation matrix.
+  Eigen::Matrix3d R = Eigen::Matrix3d::Zero();
+  // Relative translation vector.
+  Eigen::Vector3d t = Eigen::Vector3d::Zero();
+
 
   // Relative pose.
   Rigid3d cam2_from_cam1;
 
   // Inlier matches of the configuration.
   FeatureMatches inlier_matches;
-
   // Median triangulation angle.
   double tri_angle = -1;
 

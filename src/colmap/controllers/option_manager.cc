@@ -601,6 +601,7 @@ void OptionManager::AddMapperOptions() {
                               &mapper->mapper.max_reg_trials);
   AddAndRegisterDefaultOption("Mapper.local_ba_min_tri_angle",
                               &mapper->mapper.local_ba_min_tri_angle);
+  AddAndRegisterDefaultOption("Mapper.mode", &mapper->mapper.mode);
 
   // IncrementalTriangulator.
   AddAndRegisterDefaultOption("Mapper.tri_max_transitivity",
