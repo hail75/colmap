@@ -269,7 +269,7 @@ bool IncrementalPipeline::LoadDatabase() {
   timer.Start();
   const size_t min_num_matches = static_cast<size_t>(options_->min_num_matches);
   database_cache_ = DatabaseCache::Create(
-      database, min_num_matches, options_->ignore_watermarks, image_names);
+      database, min_num_matches, options_->ignore_watermarks, image_names, image_path_);
   timer.PrintMinutes();
 
   if (database_cache_->NumImages() == 0) {
