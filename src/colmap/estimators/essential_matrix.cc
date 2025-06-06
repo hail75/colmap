@@ -75,7 +75,7 @@ void TranslationVectorTwoPointEstimator::Residuals(
     const R_t& R,
     const M_t& t,
     std::vector<double>* residuals) {
-  const Eigen::Matrix3d t_hat;
+  Eigen::Matrix3d t_hat;
   t_hat << 0, -t(2), t(1),
            t(2), 0, -t(0),
           -t(1), t(0), 0;
