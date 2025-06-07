@@ -432,9 +432,9 @@ LORANSAC<Estimator, LocalEstimator, SupportMeasurer, Sampler>::Estimate(
   // evaluated model. Some benchmarking revealed that this approach is faster.
 
   if (best_model_is_local) {
-    local_estimator.Residuals(X, Y, report.model, &residuals);
+    local_estimator.Residuals(X, Y, R, report.model, &residuals);
   } else {
-    estimator.Residuals(X, Y, report.model, &residuals);
+    estimator.Residuals(X, Y, R, report.model, &residuals);
   }
 
   THROW_CHECK_EQ(residuals.size(), num_samples);
