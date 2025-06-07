@@ -71,7 +71,7 @@ class LORANSAC : public RANSAC<Estimator, SupportMeasurer, Sampler> {
 
   Report Estimate(const std::vector<typename Estimator::X_t>& X,
                   const std::vector<typename Estimator::Y_t>& Y,
-                  const typename Estimator::R_t& R);
+                  const Eigen::Matrix3d& R);
   
   using RANSAC<Estimator, SupportMeasurer, Sampler>::estimator;
   using RANSAC<Estimator, SupportMeasurer, Sampler>::support_measurer;
@@ -282,7 +282,7 @@ typename LORANSAC<Estimator, LocalEstimator, SupportMeasurer, Sampler>::Report
 LORANSAC<Estimator, LocalEstimator, SupportMeasurer, Sampler>::Estimate(
     const std::vector<typename Estimator::X_t>& X,
     const std::vector<typename Estimator::Y_t>& Y,
-    const typename Estimator::R_t& R) {
+    const Eigen::Matrix3d& R) {
   THROW_CHECK_EQ(X.size(), Y.size());
 
   const size_t num_samples = X.size();
